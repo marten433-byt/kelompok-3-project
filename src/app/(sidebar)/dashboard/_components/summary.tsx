@@ -78,59 +78,6 @@ export function Summary({
           </Badge>
         </div>
       </div>
-
-      <CardContent className="flex flex-col gap-4 py-4">
-        {/* Bagian pertama: modal, laba kotor, dan catatan hasil */}
-        <section
-          aria-label="Ringkasan modal dan laba kotor"
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          <Card size="sm" className="h-full">
-            <CardHeader>
-              <CardDescription>Modal</CardDescription>
-              <CardTitle className="text-2xl font-semibold tabular-nums">
-                {formatRupiah(modal)}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-
-          <Card size="sm" className="h-full">
-            <CardHeader>
-              <CardDescription>Laba Kotor</CardDescription>
-              <CardTitle className="text-2xl font-semibold tabular-nums">
-                {formatRupiah(labaKotor)}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-
-          <Card size="sm" className="h-full">
-            <CardHeader>
-              <CardTitle>Catatan Hasil</CardTitle>
-              <CardDescription>{catatanHasil}</CardDescription>
-            </CardHeader>
-          </Card>
-        </section>
-
-        {/* Bagian kedua: laba bersih dengan warna sesuai untung/rugi */}
-        <section aria-label="Ringkasan laba bersih">
-          <Card size="sm">
-            <CardHeader>
-              <div className="flex items-center justify-between gap-2">
-                <CardDescription>Laba Bersih</CardDescription>
-                <Badge variant="outline" className={statusColor}>
-                  {untung ? "Untung" : "Rugi"}
-                </Badge>
-              </div>
-              <CardTitle
-                className={`text-2xl font-semibold tabular-nums ${labaBersihColor}`}
-              >
-                {formatRupiah(labaBersih)}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        </section>
-      </CardContent>
     </Card>
   );
 }
-
