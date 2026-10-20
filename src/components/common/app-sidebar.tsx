@@ -35,7 +35,7 @@ const navigationItems: NavigationItem[] = [
   },
   {
     title: "Riwayat",
-    href: "/dashboard/riwayat",
+    href: "/riwayat",
     icon: HistoryIcon,
   },
 ];
@@ -48,7 +48,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
 
-  // Hanya sorot menu paling spesifik (mis. "Riwayat" saat di /dashboard/riwayat).
+  // Hanya sorot menu paling spesifik (mis. "Riwayat" saat di /riwayat).
   const activeHref = [...navigationItems]
     .sort((a, b) => b.href.length - a.href.length)
     .find((item) => isNavigationActive(pathname, item.href))?.href;
