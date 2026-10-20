@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cookies } from "next/headers";
 
 import { AppSidebar } from "@/components/common/app-sidebar";
+import { ModeToggle } from "@/components/common/mode-toggle";
 import {
   SidebarInset,
   SidebarProvider,
@@ -25,6 +26,7 @@ export default async function DashboardLayout({
           <SidebarTrigger className="size-9 md:size-7" />
           <span aria-hidden="true" className="h-5 w-px bg-border" />
           <span className="font-heading text-sm font-semibold">Omsetku</span>
+          <ModeToggle className="ml-auto size-9 md:size-7" />
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
       </SidebarInset>

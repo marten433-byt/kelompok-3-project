@@ -80,7 +80,9 @@ Komponen yang sudah terpasang: `avatar`, `badge`, `button`, `card`, `dialog`,
   langsung dipakai di client component.
 - `TooltipProvider` juga sudah membungkus seluruh aplikasi.
 - Tema gelap memakai class `.dark` pada elemen `html` (token sudah tersedia di
-  `globals.css`). Tambahkan `next-themes` bila ingin tombol pengubah tema.
+  `globals.css`). Toggle tema ada di header dashboard (`ModeToggle`) dengan
+  pilihan Terang, Gelap, dan Ikuti sistem; preferensi disimpan oleh
+  `next-themes` di `localStorage`.
 - Nama paket di `package.json` adalah `sdfdbas` karena npm tidak mengizinkan huruf
   kapital pada nama proyek.
 

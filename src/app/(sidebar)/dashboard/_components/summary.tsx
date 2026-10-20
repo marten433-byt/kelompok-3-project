@@ -1,11 +1,7 @@
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+
+import { WaktuRealtime } from "./waktu_realtime";
 
 const numberFormatter = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 0,
@@ -17,37 +13,19 @@ function formatRupiah(value: number) {
 
 type SummaryProps = {
   outlet?: string;
-  waktu?: string;
   omzet?: number;
   modal?: number;
-  labaKotor?: number;
   labaBersih?: number;
-  catatan?: string;
 };
 
 export function Summary({
   outlet = "Batagor",
-  waktu = "16:42",
   omzet = 180_000,
   modal = 200_000,
-  labaKotor = omzet - modal,
   labaBersih = omzet - modal,
-  catatan,
 }: SummaryProps) {
   // Laba bersih negatif berarti rugi, selain itu dianggap untung.
   const untung = labaBersih >= 0;
-
-  const catatanHasil =
-    catatan ??
-    `Omzet ${formatRupiah(omzet)} dikurangi modal ${formatRupiah(modal)}; hasil ${formatRupiah(labaBersih)}.`;
-
-  const labaBersihColor = untung
-    ? "text-emerald-600 dark:text-emerald-400"
-    : "text-red-600 dark:text-red-400";
-
-  const statusColor = untung
-    ? "border-emerald-600/30 bg-emerald-600/10 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-400"
-    : "border-red-600/30 bg-red-600/10 text-red-700 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-400";
 
   const heroBadgeColor = untung ? "text-emerald-600" : "text-red-500";
 
@@ -56,8 +34,8 @@ export function Summary({
       {/* Header hero: ringkasan omzet hari ini */}
       <div className="rounded-b-none bg-[#0C3D2F] px-6 pt-6 pb-6">
         <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="text-white/70">{`Hari ini - ${outlet}`}</span>
-          <span className="tabular-nums text-white/70">{waktu}</span>
+          <span className="truncate text-white/70">{`Hari ini - ${outlet}`}</span>
+          <WaktuRealtime />
         </div>
 
         <div className="mt-4">
