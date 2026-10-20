@@ -13,7 +13,7 @@ export type Penjualan = {
 };
 
 // Data contoh agar section tetap terlihat saat belum terhubung ke penyimpanan.
-const penjualanContoh: Penjualan[] = [
+export const penjualanContoh: Penjualan[] = [
   { jam: "16:40", nama: "Batagor", nominal: 10_000 },
   { jam: "16:12", nama: "Es Teh Manis", nominal: 5_000 },
   { jam: "15:58", nama: "Siomay", nominal: 12_000 },

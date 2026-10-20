@@ -11,6 +11,9 @@ function formatRupiah(value: number) {
   return `${value < 0 ? "-" : ""}Rp${numberFormatter.format(Math.abs(value))}`;
 }
 
+/** Outlet yang sedang aktif. Dipakai juga oleh daftar penjualan. */
+export const outletAktif = "Batagor";
+
 type SummaryProps = {
   outlet?: string;
   omzet?: number;
@@ -19,7 +22,7 @@ type SummaryProps = {
 };
 
 export function Summary({
-  outlet = "Batagor",
+  outlet = outletAktif,
   omzet = 180_000,
   modal = 200_000,
   labaBersih = omzet - modal,
