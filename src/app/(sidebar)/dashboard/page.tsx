@@ -1,13 +1,11 @@
-import { ListPenjualan } from "./_components/list_penjualan";
-import { Summary } from "./_components/summary";
-import { TombolHarga } from "./_components/tombol_harga";
+import { CardBanding } from "./_components/card-banding";
+import { ChartLabaBersih } from "./_components/chart-laba-bersih";
 
 export default function DashboardPage() {
   return (
     <>
-      <Summary />
-      <ListPenjualan />
-      <TombolHarga />
+      <CardBanding />
+      <ChartLabaBersih />
     </>
   );
 }

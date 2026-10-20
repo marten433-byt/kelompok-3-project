@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { HistoryIcon, LayoutDashboardIcon, WalletIcon } from "lucide-react";
+import {
+  HistoryIcon,
+  LayoutDashboardIcon,
+  SquareMenu,
+  WalletIcon,
+} from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -28,6 +33,11 @@ type NavigationItem = {
 };
 
 const navigationItems: NavigationItem[] = [
+  {
+    title: "Main Menu",
+    href: "/main-menu",
+    icon: SquareMenu,
+  },
   {
     title: "Dashboard",
     href: "/dashboard",
