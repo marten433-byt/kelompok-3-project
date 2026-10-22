@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { tambahItemPenjualan } from "../action";
 import {
   ListPenjualan,
-  penjualanContoh,
   type Penjualan,
 } from "./list_penjualan";
 import { outletAktif } from "./summary";
@@ -23,17 +24,34 @@ function jamSekarang() {
  * Menyimpan penjualan hari ini di state, sehingga item dari form "Lainnya"
  * langsung muncul di bagian atas daftar penjualan.
  */
-export function MainMenuClient() {
-  const [penjualan, setPenjualan] = useState<Penjualan[]>(() => [
-    ...penjualanContoh,
-  ]);
+type MainMenuClientProps = {
+  /** Penjualan hari ini dari tabel sale_items. */
+  penjualanAwal: Penjualan[];
+};
+
+export function MainMenuClient({ penjualanAwal }: MainMenuClientProps) {
+  const router = useRouter();
+  const [penjualan, setPenjualan] = useState<Penjualan[]>(penjualanAwal);
+  const [, startTransition] = useTransition();
 
   function tambahPenjualan({ nama, nominal }: PenjualanBaru) {
-    setPenjualan((sebelumnya) => [
-      { jam: jamSekarang(), nama, nominal },
-      ...sebelumnya,
-    ]);
-    toast.success(`${nama} ditambahkan ke penjualan.`);
+    startTransition(async () => {
+      const hasil = await tambahItemPenjualan({ nama, nominal });
+
+      if (!hasil.sukses) {
+        toast.error(hasil.pesan);
+        return;
+      }
+
+      setPenjualan((sebelumnya) => [
+        { jam: jamSekarang(), nama, nominal },
+        ...sebelumnya,
+      ]);
+      toast.success(`${nama} ditambahkan ke penjualan.`);
+
+      // Ambil ulang data server agar ringkasan omzet/transaksi ikut berubah.
+      router.refresh();
+    });
   }
 
   /** Tombol nominal cepat mencatat penjualan atas nama outlet yang aktif. */

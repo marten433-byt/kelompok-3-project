@@ -60,22 +60,6 @@ export type LabaBersihHarian = {
   labaBersih: number;
 };
 
-// Data dummy 12 hari. Ganti dengan data asli dari API/penyimpanan saat tersedia.
-const dataDummy: LabaBersihHarian[] = [
-  { tanggal: "2026-10-09", labaBersih: 210_000 },
-  { tanggal: "2026-10-10", labaBersih: 265_000 },
-  { tanggal: "2026-10-11", labaBersih: 180_000 },
-  { tanggal: "2026-10-12", labaBersih: 320_000 },
-  { tanggal: "2026-10-13", labaBersih: 275_000 },
-  { tanggal: "2026-10-14", labaBersih: 240_000 },
-  { tanggal: "2026-10-15", labaBersih: 355_000 },
-  { tanggal: "2026-10-16", labaBersih: 310_000 },
-  { tanggal: "2026-10-17", labaBersih: 420_000 },
-  { tanggal: "2026-10-18", labaBersih: 385_000 },
-  { tanggal: "2026-10-19", labaBersih: 295_000 },
-  { tanggal: "2026-10-20", labaBersih: 465_000 },
-];
-
 /** Urutkan berdasarkan tanggal, lalu ambil 7 hari terakhir saja. */
 export function ambilTujuhHariTerakhir(data: LabaBersihHarian[]) {
   return [...data]
@@ -91,10 +75,10 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 type ChartLabaBersihProps = {
-  data?: LabaBersihHarian[];
+  data: LabaBersihHarian[];
 };
 
-export function ChartLabaBersih({ data = dataDummy }: ChartLabaBersihProps) {
+export function ChartLabaBersih({ data }: ChartLabaBersihProps) {
   const dataTujuhHari = ambilTujuhHariTerakhir(data);
 
   return (

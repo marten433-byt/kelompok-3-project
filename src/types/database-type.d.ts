@@ -1,56 +1,37 @@
 export interface User {
-  user_id: number;
-  full_name: string;
-  business_name: string;
-  phone: string;
-  email: string | null;
-  password_hash: string;
-  created_at: string;
-}
-
-export interface Category {
-  category_id: number;
-  user_id: number;
-  name: string;
+  user_id: number; // int8, NOT NULL
+  full_name: string; // varchar, NOT NULL
+  business_name: string; // varchar, NOT NULL
+  phone: string; // varchar, NOT NULL
+  email: string | null; // varchar, NULLABLE
+  password_hash: string; // text, NOT NULL
+  created_at: string; // timestamptz, NOT NULL
 }
 
 export interface Product {
-  product_id: number;
-  user_id: number;
-  category_id: number | null;
-  name: string;
-  unit_price: number;
-  is_active: boolean;
-  created_at: string;
+  product_id: number; // int8, NOT NULL
+  user_id: number; // int8, NOT NULL
+  category_id: number | null; // int4, NULLABLE
+  name: string; // varchar, NOT NULL
+  created_at: string; // timestamptz, NOT NULL
 }
 
 export interface DailySession {
-  session_id: number;
-  user_id: number;
-  session_date: string;
-  opening_capital: number;
-  total_revenue: number;
-  transaction_count: number;
-  status: string;
-  opened_at: string;
-  closed_at: string | null;
-  notes: string | null;
-}
-
-export interface SalesTransaction {
-  transaction_id: number;
-  session_id: number;
-  created_at: string;
-  payment_method: string;
-  total_amount: number;
-  note: string | null;
+  session_id: number; // int8, NOT NULL
+  user_id: number; // int8, NOT NULL
+  session_date: string; // date, NOT NULL
+  opening_capital: number; // numeric, NOT NULL
+  total_revenue: number; // numeric, NOT NULL
+  transaction_count: number; // int4, NOT NULL
+  status: string; // varchar, NOT NULL
+  opened_at: string; // timestamptz, NOT NULL
+  closed_at: string | null; // timestamptz, NULLABLE
+  notes: string | null; // text, NULLABLE
 }
 
 export interface SaleItem {
-  sale_item_id: number;
-  transaction_id: number;
-  product_id: number;
-  quantity: number;
-  unit_price: number;
-  subtotal: number | null;
+  sale_item_id: number; // int8, NOT NULL
+  product_id: number; // int8, NOT NULL
+  session_id: number; // int8, NOT NULL
+  unit_price: number; // numeric, NOT NULL
 }

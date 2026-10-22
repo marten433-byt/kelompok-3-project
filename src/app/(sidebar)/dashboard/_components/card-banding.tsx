@@ -22,19 +22,12 @@ function formatRupiah(value: number) {
   return `${value < 0 ? "-" : ""}Rp${numberFormatter.format(Math.abs(value))}`;
 }
 
-// Data dummy: sama dengan dua hari terakhir pada chart laba bersih.
-const labaHariIniDummy = 465_000;
-const labaKemarinDummy = 295_000;
-
 type CardBandingProps = {
-  labaHariIni?: number;
-  labaKemarin?: number;
+  labaHariIni: number;
+  labaKemarin: number;
 };
 
-export function CardBanding({
-  labaHariIni = labaHariIniDummy,
-  labaKemarin = labaKemarinDummy,
-}: CardBandingProps) {
+export function CardBanding({ labaHariIni, labaKemarin }: CardBandingProps) {
   const selisih = labaHariIni - labaKemarin;
   const untung = labaHariIni >= 0;
   const naik = selisih > 0;

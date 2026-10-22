@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import type { DailySession } from "@/types/database-type";
 
 const numberFormatter = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 0,
@@ -20,40 +21,38 @@ const tanggalFormatter = new Intl.DateTimeFormat("id-ID", {
   day: "numeric",
   month: "long",
   year: "numeric",
+  timeZone: "Asia/Jakarta",
+});
+
+const jamFormatter = new Intl.DateTimeFormat("en-GB", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "Asia/Jakarta",
 });
 
 function formatRupiah(value: number) {
   return `${value < 0 ? "-" : ""}Rp${numberFormatter.format(Math.abs(value))}`;
 }
 
-// Tanggal ISO (YYYY-MM-DD) dibaca sebagai waktu lokal agar label tidak bergeser.
+/** Tanggal ISO (YYYY-MM-DD) dibaca sebagai tanggal WIB agar label tidak bergeser. */
 function keTanggal(iso: string) {
-  return new Date(`${iso}T00:00:00`);
+  return new Date(`${iso}T00:00:00+07:00`);
 }
 
-export type TransaksiHarian = {
-  /** Tanggal dalam format ISO `YYYY-MM-DD`. */
-  tanggal: string;
-  omzet: number;
-  modal: number;
-  beban: number;
-};
+/** Timestamp ISO menjadi jam WIB, mis. "2026-10-22T06:03:50+00:00" -> "13:03 WIB". */
+function formatJam(iso: string | null) {
+  if (!iso) return null;
 
-// Data dummy 7 hari. Laba bersihnya sama dengan chart laba bersih di dashboard.
-const transaksiContoh: TransaksiHarian[] = [
-  { tanggal: "2026-10-14", omzet: 460_000, modal: 185_000, beban: 35_000 },
-  { tanggal: "2026-10-15", omzet: 610_000, modal: 220_000, beban: 35_000 },
-  { tanggal: "2026-10-16", omzet: 565_000, modal: 210_000, beban: 45_000 },
-  { tanggal: "2026-10-17", omzet: 700_000, modal: 235_000, beban: 45_000 },
-  { tanggal: "2026-10-18", omzet: 655_000, modal: 225_000, beban: 45_000 },
-  { tanggal: "2026-10-19", omzet: 520_000, modal: 195_000, beban: 30_000 },
-  { tanggal: "2026-10-20", omzet: 760_000, modal: 250_000, beban: 45_000 },
-];
+  const tanggal = new Date(iso);
+  if (Number.isNaN(tanggal.getTime())) return null;
 
-/** Laba kotor = omzet - modal, laba bersih = laba kotor - beban operasional. */
-function hitungLaba({ omzet, modal, beban }: TransaksiHarian) {
-  const labaKotor = omzet - modal;
-  return { labaKotor, labaBersih: labaKotor - beban };
+  return `${jamFormatter.format(tanggal)} WIB`;
+}
+
+/** Laba bersih sesi = omzet - modal awal. */
+function hitungLabaBersih(sesi: DailySession) {
+  return sesi.total_revenue - sesi.opening_capital;
 }
 
 // Laba negatif berarti rugi, selain itu dianggap untung.
@@ -63,23 +62,67 @@ function warnaLaba(value: number) {
     : "text-red-500 dark:text-red-400";
 }
 
-/** Riwayat ditampilkan dari tanggal terbaru. */
-function urutkanTerbaru(data: TransaksiHarian[]) {
-  return [...data].sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+/** Label yang ramah untuk nilai status pada daily_sessions. */
+function labelStatus(status: string) {
+  switch (status.toUpperCase()) {
+    case "OPEN":
+      return "Sesi buka";
+    case "CLOSED":
+      return "Sesi tutup";
+    default:
+      return status;
+  }
 }
 
-function KartuTransaksi({ transaksi }: { transaksi: TransaksiHarian }) {
-  const { tanggal, omzet, modal, beban } = transaksi;
-  const { labaKotor, labaBersih } = hitungLaba(transaksi);
+/** Riwayat ditampilkan dari tanggal terbaru. */
+function urutkanTerbaru(data: DailySession[]) {
+  return [...data].sort((a, b) =>
+    b.session_date.localeCompare(a.session_date),
+  );
+}
+
+function KartuTransaksi({ sesi }: { sesi: DailySession }) {
+  const {
+    session_date,
+    opening_capital,
+    total_revenue,
+    transaction_count,
+    status,
+    opened_at,
+    closed_at,
+    notes,
+  } = sesi;
+
+  const labaBersih = hitungLabaBersih(sesi);
 
   // Omzet nol membuat persentase tidak terdefinisi.
-  const margin = omzet === 0 ? null : (labaBersih / omzet) * 100;
+  const margin =
+    total_revenue === 0 ? null : (labaBersih / total_revenue) * 100;
+
+  const jamDibuka = formatJam(opened_at);
+  const jamDitutup = formatJam(closed_at);
+  const keteranganWaktu =
+    status.toUpperCase() === "CLOSED"
+      ? jamDitutup
+        ? `ditutup ${jamDitutup}`
+        : null
+      : jamDibuka
+        ? `dibuka ${jamDibuka}`
+        : null;
+
+  const ringkasanSesi = [
+    `${transaction_count} transaksi`,
+    labelStatus(status),
+    keteranganWaktu,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <Card size="sm">
       <CardHeader>
         <CardTitle className="text-sm">
-          {tanggalFormatter.format(keTanggal(tanggal))}
+          {tanggalFormatter.format(keTanggal(session_date))}
         </CardTitle>
         <CardAction>
           <Badge
@@ -100,20 +143,16 @@ function KartuTransaksi({ transaksi }: { transaksi: TransaksiHarian }) {
               Modal
             </dt>
             <dd className="mt-1 text-base font-semibold tabular-nums">
-              {formatRupiah(modal)}
+              {formatRupiah(opening_capital)}
             </dd>
           </div>
 
           <div>
             <dt className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-              Laba kotor
+              Omzet
             </dt>
-            <dd
-              className={`mt-1 text-base font-semibold tabular-nums ${warnaLaba(
-                labaKotor,
-              )}`}
-            >
-              {formatRupiah(labaKotor)}
+            <dd className="mt-1 text-base font-semibold tabular-nums">
+              {formatRupiah(total_revenue)}
             </dd>
           </div>
 
@@ -131,22 +170,22 @@ function KartuTransaksi({ transaksi }: { transaksi: TransaksiHarian }) {
           </div>
         </dl>
 
-        <p className="text-xs text-muted-foreground">
-          {`Omzet ${formatRupiah(omzet)} · Beban ${formatRupiah(beban)}`}
-        </p>
+        <p className="text-xs text-muted-foreground">{ringkasanSesi}</p>
+
+        {notes && (
+          <p className="text-xs text-muted-foreground">{`Catatan: ${notes}`}</p>
+        )}
       </CardContent>
     </Card>
   );
 }
 
 type ListTransaksiProps = {
-  transaksi?: TransaksiHarian[];
+  sesi: DailySession[];
 };
 
-export function ListTransaksi({
-  transaksi = transaksiContoh,
-}: ListTransaksiProps) {
-  const daftar = urutkanTerbaru(transaksi);
+export function ListTransaksi({ sesi }: ListTransaksiProps) {
+  const daftar = urutkanTerbaru(sesi);
 
   return (
     <section aria-labelledby="riwayat-transaksi" className="flex flex-col gap-3">
@@ -167,7 +206,7 @@ export function ListTransaksi({
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {daftar.map((item) => (
-            <KartuTransaksi key={item.tanggal} transaksi={item} />
+            <KartuTransaksi key={item.session_id} sesi={item} />
           ))}
         </div>
       )}

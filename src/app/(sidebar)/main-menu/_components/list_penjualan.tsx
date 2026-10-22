@@ -7,26 +7,17 @@ function formatRupiah(value: number) {
 }
 
 export type Penjualan = {
-  jam: string;
+  /** Jam transaksi bila tersedia (mis. dari input manual di klien). */
+  jam?: string;
   nama: string;
   nominal: number;
 };
 
-// Data contoh agar section tetap terlihat saat belum terhubung ke penyimpanan.
-export const penjualanContoh: Penjualan[] = [
-  { jam: "16:40", nama: "Batagor", nominal: 10_000 },
-  { jam: "16:12", nama: "Es Teh Manis", nominal: 5_000 },
-  { jam: "15:58", nama: "Siomay", nominal: 12_000 },
-  { jam: "15:30", nama: "Batagor", nominal: 10_000 },
-];
-
 type ListPenjualanProps = {
-  penjualan?: Penjualan[];
+  penjualan: Penjualan[];
 };
 
-export function ListPenjualan({
-  penjualan = penjualanContoh,
-}: ListPenjualanProps) {
+export function ListPenjualan({ penjualan }: ListPenjualanProps) {
   return (
     <section aria-labelledby="penjualan-terakhir">
       <h2
@@ -44,10 +35,12 @@ export function ListPenjualan({
         <ul>
           {penjualan.map((item, index) => (
             <li
-              key={`${item.jam}-${item.nama}-${index}`}
+              key={`${item.nama}-${index}`}
               className="flex justify-between items-center py-3 px-4 text-sm font-medium border-b border-gray-100 last:border-b-0"
             >
-              <span className="truncate">{`${item.jam} · ${item.nama}`}</span>
+              <span className="truncate">
+                {item.jam ? `${item.jam} · ${item.nama}` : item.nama}
+              </span>
               <span className="ml-4 shrink-0 tabular-nums">
                 {formatRupiah(item.nominal)}
               </span>
