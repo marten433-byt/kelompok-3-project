@@ -19,6 +19,8 @@ export type HasilTambahItemPenjualan =
       sale_item_id: number;
       product_id: number;
       session_id: number;
+      /** Waktu transaksi dibuat (timestamptz) untuk ditampilkan di daftar. */
+      created_at: string;
     }
   | {
       sukses: false;
@@ -173,7 +175,10 @@ export async function tambahItemPenjualan(
     productId = (dataProdukBaru as ProdukRingkas).product_id;
   }
 
-  // 4. Simpan penjualan ke sale_items.
+  // 4. Simpan penjualan ke sale_items beserta waktu transaksi dibuat.
+  //    created_at diisi eksplisit agar waktu pada daftar penjualan tersimpan
+  //    di database, bukan hanya di state klien.
+  const dibuatPada = new Date().toISOString();
   const { data: dataItem, error: errorItem } = await supabase
     .schema("myomset")
     .from("sale_items")
@@ -181,8 +186,9 @@ export async function tambahItemPenjualan(
       product_id: productId,
       session_id: sesi.session_id,
       unit_price: nominal,
+      created_at: dibuatPada,
     })
-    .select("sale_item_id")
+    .select("sale_item_id, created_at")
     .single();
 
   if (errorItem) {
@@ -197,11 +203,19 @@ export async function tambahItemPenjualan(
   revalidatePath("/dashboard");
   revalidatePath("/riwayat");
 
+  const itemTersimpan = dataItem as Pick<
+    SaleItem,
+    "sale_item_id" | "created_at"
+  >;
+
   return {
     sukses: true,
-    sale_item_id: (dataItem as Pick<SaleItem, "sale_item_id">).sale_item_id,
+    sale_item_id: itemTersimpan.sale_item_id,
     product_id: productId,
     session_id: sesi.session_id,
+    // Pakai nilai dari database; bila kolomnya kosong, gunakan waktu yang
+    // barusan dikirim agar daftar penjualan tetap menampilkan jam.
+    created_at: itemTersimpan.created_at ?? dibuatPada,
   };
 }
 

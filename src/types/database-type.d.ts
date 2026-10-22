@@ -34,4 +34,5 @@ export interface SaleItem {
   product_id: number; // int8, NOT NULL
   session_id: number; // int8, NOT NULL
   unit_price: number; // numeric, NOT NULL
+  created_at: string; // timestampz, NULLABLE
 }

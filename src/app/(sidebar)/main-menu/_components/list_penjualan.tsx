@@ -7,7 +7,7 @@ function formatRupiah(value: number) {
 }
 
 export type Penjualan = {
-  /** Jam transaksi bila tersedia (mis. dari input manual di klien). */
+  /** Jam transaksi dari kolom created_at sale_items, mis. "16:40". */
   jam?: string;
   nama: string;
   nominal: number;

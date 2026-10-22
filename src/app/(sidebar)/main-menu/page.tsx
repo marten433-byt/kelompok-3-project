@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { formatJamWib } from "@/lib/waktu";
 import type {
   DailySession,
   Product,
@@ -15,7 +16,10 @@ import { outletAktif, Summary } from "./_components/summary";
 export const instant = false;
 
 /** sale_items + relasi products(name) untuk daftar penjualan terakhir. */
-type SaleItemDenganProduk = Pick<SaleItem, "sale_item_id" | "unit_price"> & {
+type SaleItemDenganProduk = Pick<
+  SaleItem,
+  "sale_item_id" | "unit_price" | "created_at"
+> & {
   // Relasi ke products bisa berbentuk objek (many-to-one) atau array,
   // tergantung bagaimana PostgREST mengembalikannya.
   products: Pick<Product, "name"> | Pick<Product, "name">[] | null;
@@ -65,7 +69,7 @@ export default async function MainMenuPage() {
       supabase
         .schema("myomset")
         .from("sale_items")
-        .select("sale_item_id, unit_price, products(name)")
+        .select("sale_item_id, unit_price, created_at, products(name)")
         .eq("session_id", sesiHariIni.session_id)
         .order("sale_item_id", { ascending: false }),
     ]);
@@ -85,6 +89,9 @@ export default async function MainMenuPage() {
       penjualan = (
         (itemPenjualan.data ?? []) as SaleItemDenganProduk[]
       ).map((item) => ({
+        // Jam dari kolom created_at agar waktu transaksi tetap sama
+        // setelah halaman dimuat ulang.
+        jam: formatJamWib(item.created_at) ?? undefined,
         nama: namaProduk(item.products),
         nominal: item.unit_price,
       }));

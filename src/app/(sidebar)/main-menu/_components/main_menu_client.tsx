@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { formatJamWib } from "@/lib/waktu";
+
 import { tambahItemPenjualan } from "../action";
 import {
   ListPenjualan,
@@ -12,7 +14,7 @@ import {
 import { outletAktif } from "./summary";
 import { TombolHarga, type PenjualanBaru } from "./tombol_harga";
 
-/** Jam lokal saat ini, mis. "16:40". */
+/** Jam lokal saat ini, mis. "16:40". Cadangan bila created_at tidak ada. */
 function jamSekarang() {
   const sekarang = new Date();
   const jam = String(sekarang.getHours()).padStart(2, "0");
@@ -44,7 +46,12 @@ export function MainMenuClient({ penjualanAwal }: MainMenuClientProps) {
       }
 
       setPenjualan((sebelumnya) => [
-        { jam: jamSekarang(), nama, nominal },
+        // Jam diambil dari created_at yang baru disimpan ke database.
+        {
+          jam: formatJamWib(hasil.created_at) ?? jamSekarang(),
+          nama,
+          nominal,
+        },
         ...sebelumnya,
       ]);
       toast.success(`${nama} ditambahkan ke penjualan.`);
