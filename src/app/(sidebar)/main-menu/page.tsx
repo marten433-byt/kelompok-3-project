@@ -9,11 +9,19 @@ import type {
   User,
 } from "@/types/database-type";
 
+import { type ModalSebelumnya } from "./_components/kontrol_sesi";
 import { type Penjualan } from "./_components/list_penjualan";
 import { MainMenuClient } from "./_components/main_menu_client";
 import { outletAktif, Summary } from "./_components/summary";
 
 export const instant = false;
+
+/** Tanggal ISO (YYYY-MM-DD) digeser sejumlah hari memakai UTC agar aman. */
+function geserTanggal(iso: string, jumlahHari: number) {
+  const [tahun, bulan, hari] = iso.split("-").map(Number);
+  const tanggal = new Date(Date.UTC(tahun, bulan - 1, hari + jumlahHari));
+  return tanggal.toISOString().slice(0, 10);
+}
 
 /** sale_items + relasi products(name) untuk daftar penjualan terakhir. */
 type SaleItemDenganProduk = Pick<
@@ -38,6 +46,7 @@ export default async function MainMenuPage() {
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jakarta",
   }).format(new Date());
+  const kemarin = geserTanggal(today, -1);
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -54,6 +63,36 @@ export default async function MainMenuPage() {
   // Data daily_sessions dipetakan ke tipe DailySession agar field yang dipakai
   // komponen sesuai dengan yang ada di src/types/database-type.d.ts.
   const sesiHariIni = (data as DailySession | null) ?? null;
+
+  // Modal sesi terakhir sebelum hari ini, dipakai sebagai isian cepat saat
+  // membuka sesi baru. Sesi dengan modal 0 dilewati karena tidak informatif.
+  let modalSebelumnya: ModalSebelumnya | null = null;
+
+  if (!sesiHariIni) {
+    const { data: sesiSebelumnya, error: errorModalSebelumnya } = await supabase
+      .schema("myomset")
+      .from("daily_sessions")
+      .select("session_date, opening_capital")
+      .lt("session_date", today)
+      .gt("opening_capital", 0)
+      .order("session_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (errorModalSebelumnya) {
+      console.error("Gagal mengambil modal sesi terakhir:", errorModalSebelumnya);
+    } else if (sesiSebelumnya) {
+      const sebelumnya = sesiSebelumnya as Pick<
+        DailySession,
+        "session_date" | "opening_capital"
+      >;
+
+      modalSebelumnya = {
+        nominal: sebelumnya.opening_capital,
+        dariKemarin: sebelumnya.session_date === kemarin,
+      };
+    }
+  }
 
   let outlet = outletAktif;
   let penjualan: Penjualan[] = [];
@@ -100,8 +139,21 @@ export default async function MainMenuPage() {
 
   return (
     <>
-      <Summary outlet={outlet} sesi={sesiHariIni} />
-      <MainMenuClient penjualanAwal={penjualan} />
+      <Summary
+        outlet={outlet}
+        sesi={sesiHariIni}
+        modalSebelumnya={modalSebelumnya}
+      />
+      <MainMenuClient
+        penjualanAwal={penjualan}
+        statusSesi={
+          sesiHariIni
+            ? sesiHariIni.status.trim().toUpperCase() === "OPEN"
+              ? "OPEN"
+              : "CLOSED"
+            : null
+        }
+      />
     </>
   );
 }

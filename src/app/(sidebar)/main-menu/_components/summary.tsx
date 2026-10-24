@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { DailySession } from "@/types/database-type";
 
+import { KontrolSesi, type ModalSebelumnya } from "./kontrol_sesi";
 import { WaktuRealtime } from "./waktu_realtime";
 
 const numberFormatter = new Intl.NumberFormat("id-ID", {
@@ -64,9 +65,15 @@ type SummaryProps = {
   outlet?: string;
   /** Baris daily_sessions hari ini; null jika sesi belum dibuat. */
   sesi?: DailySession | null;
+  /** Modal sesi terakhir untuk isian cepat di dialog buka sesi. */
+  modalSebelumnya?: ModalSebelumnya | null;
 };
 
-export function Summary({ outlet = outletAktif, sesi = null }: SummaryProps) {
+export function Summary({
+  outlet = outletAktif,
+  sesi = null,
+  modalSebelumnya = null,
+}: SummaryProps) {
   // Field DailySession ditempatkan sesuai maknanya di kartu ringkasan.
   const omzet = sesi?.total_revenue ?? 0;
   const modal = sesi?.opening_capital ?? 0;
@@ -141,6 +148,9 @@ export function Summary({ outlet = outletAktif, sesi = null }: SummaryProps) {
         {sesi?.notes && (
           <p className="mt-1 text-xs text-white/60">{`Catatan: ${sesi.notes}`}</p>
         )}
+
+        {/* Buka/tutup sesi harian, letaknya menyatu dengan ringkasan. */}
+        <KontrolSesi sesi={sesi} modalSebelumnya={modalSebelumnya} />
       </div>
     </Card>
   );

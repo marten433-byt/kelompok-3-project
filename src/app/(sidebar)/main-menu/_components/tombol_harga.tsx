@@ -45,6 +45,10 @@ type TombolHargaProps = {
   onPilihNominal?: (nominal: number) => void;
   /** Dipanggil saat form "Lainnya" disimpan. */
   onTambahPenjualan?: (penjualan: PenjualanBaru) => void;
+  /** Menonaktifkan semua tombol, mis. saat sesi hari ini belum terbuka. */
+  nonaktif?: boolean;
+  /** Keterangan yang tampil di atas tombol saat nonaktif. */
+  alasanNonaktif?: string;
   className?: string;
 };
 
@@ -52,6 +56,8 @@ export function TombolHarga({
   nominal = nominalCepat,
   onPilihNominal,
   onTambahPenjualan,
+  nonaktif = false,
+  alasanNonaktif,
   className,
 }: TombolHargaProps) {
   const [buka, setBuka] = React.useState(false);
@@ -88,11 +94,18 @@ export function TombolHarga({
 
   return (
     <div className={cn("grid grid-cols-3 gap-3 px-4 pb-6 mt-auto", className)}>
+      {nonaktif && alasanNonaktif && (
+        <p className="col-span-3 rounded-lg bg-muted/60 px-3 py-2 text-center text-xs text-muted-foreground">
+          {alasanNonaktif}
+        </p>
+      )}
+
       {nominal.map((nilai) => (
         <Button
           key={nilai}
           type="button"
           variant="secondary"
+          disabled={nonaktif}
           onClick={() => onPilihNominal?.(nilai)}
           aria-label={`Tambah penjualan ${formatRupiah(nilai)}`}
           className="h-12 w-full rounded-xl border border-[#F3E2B6] bg-[#FEF6E4] text-sm font-semibold text-[#A16207] shadow-none transition-colors hover:bg-[#FBEACB] hover:text-[#854D0E] focus-visible:border-[#A16207]/40 focus-visible:ring-[#A16207]/30"
@@ -105,6 +118,7 @@ export function TombolHarga({
         <DialogTrigger asChild>
           <Button
             type="button"
+            disabled={nonaktif}
             onClick={bukaDialog}
             aria-label="Input nama barang dan harga lainnya"
             className="h-12 w-full rounded-xl bg-[#0C3D2F] text-sm font-bold text-white shadow-none transition-colors hover:bg-[#0A3328] focus-visible:border-[#0C3D2F] focus-visible:ring-[#0C3D2F]/30"

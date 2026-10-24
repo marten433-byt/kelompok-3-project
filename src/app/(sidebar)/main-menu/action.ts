@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
-import type { DailySession, Product, SaleItem } from "@/types/database-type";
+import type {
+  DailySession,
+  Product,
+  SaleItem,
+  User,
+} from "@/types/database-type";
 
 /** Input dari form penjualan di main-menu. */
 export type ItemPenjualanInput = {
@@ -217,5 +222,266 @@ export async function tambahItemPenjualan(
     // barusan dikirim agar daftar penjualan tetap menampilkan jam.
     created_at: itemTersimpan.created_at ?? dibuatPada,
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Kontrol sesi harian (buka / tutup)                                         */
+/* -------------------------------------------------------------------------- */
+
+export type HasilAksiSesi =
+  | {
+      sukses: true;
+      session_id: number;
+      status: "OPEN" | "CLOSED";
+    }
+  | {
+      sukses: false;
+      pesan: string;
+    };
+
+export type BukaSesiInput = {
+  /** Modal awal hari ini; wajib diisi saat sesi hari ini belum ada. */
+  modalAwal?: number;
+  /** Catatan opsional yang disimpan di daily_sessions.notes. */
+  catatan?: string;
+};
+
+export type TutupSesiInput = {
+  /** Catatan opsional saat menutup sesi. */
+  catatan?: string;
+};
+
+type SesiHariIni = Pick<DailySession, "session_id" | "user_id" | "status">;
+
+/** Batas panjang catatan sesi agar tetap nyaman ditampilkan di kartu ringkasan. */
+const MAKS_CATATAN = 500;
+
+function rapikanCatatan(catatan?: string) {
+  const nilai = catatan?.trim() ?? "";
+  return nilai.length > 0 ? nilai : null;
+}
+
+/**
+ * Menentukan user pemilik sesi baru.
+ *
+ * Aplikasi ini belum punya autentikasi, jadi urutan yang dipakai:
+ * user pada sesi terakhir -> user pertama pada tabel users.
+ */
+async function userUntukSesiBaru(supabase: SupabaseServer) {
+  const { data: sesiTerakhir, error: errorSesi } = await supabase
+    .schema("myomset")
+    .from("daily_sessions")
+    .select("user_id")
+    .order("session_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (errorSesi) {
+    console.error("Gagal mengambil sesi terakhir:", errorSesi);
+  }
+
+  const userSesi = sesiTerakhir as Pick<DailySession, "user_id"> | null;
+  if (userSesi?.user_id) return userSesi.user_id;
+
+  const { data: pengguna, error: errorPengguna } = await supabase
+    .schema("myomset")
+    .from("users")
+    .select("user_id")
+    .order("user_id", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (errorPengguna) {
+    console.error("Gagal mengambil pengguna:", errorPengguna);
+    return null;
+  }
+
+  const profil = pengguna as Pick<User, "user_id"> | null;
+  return profil?.user_id ?? null;
+}
+
+/**
+ * Membuka sesi hari ini.
+ *
+ * - Sesi belum ada  -> dibuat baru dengan modal awal dari form.
+ * - Sesi ditutup    -> dibuka kembali (closed_at dikosongkan).
+ * - Sesi sudah buka -> ditolak agar tidak dobel.
+ */
+export async function bukaSesi(
+  input: BukaSesiInput = {},
+): Promise<HasilAksiSesi> {
+  const catatan = rapikanCatatan(input.catatan);
+
+  if (catatan && catatan.length > MAKS_CATATAN) {
+    return {
+      sukses: false,
+      pesan: `Catatan terlalu panjang (maksimal ${MAKS_CATATAN} karakter).`,
+    };
+  }
+
+  const supabase = await createClient();
+  const hariIni = hariIniWib();
+
+  const { data: dataSesi, error: errorSesi } = await supabase
+    .schema("myomset")
+    .from("daily_sessions")
+    .select("session_id, user_id, status")
+    .eq("session_date", hariIni)
+    .maybeSingle();
+
+  if (errorSesi) {
+    console.error("Gagal mengambil sesi hari ini:", errorSesi);
+    return { sukses: false, pesan: "Gagal mengambil sesi hari ini." };
+  }
+
+  const sesi = dataSesi as SesiHariIni | null;
+
+  // Sesi hari ini sudah dibuat: hanya perlu dibuka kembali bila sudah ditutup.
+  if (sesi) {
+    if (sesi.status.trim().toUpperCase() === "OPEN") {
+      return { sukses: false, pesan: "Sesi hari ini sudah terbuka." };
+    }
+
+    const { error: errorUpdate } = await supabase
+      .schema("myomset")
+      .from("daily_sessions")
+      .update({
+        status: "OPEN",
+        closed_at: null,
+        // Catatan lama dipertahankan bila form tidak mengirim catatan baru.
+        ...(catatan ? { notes: catatan } : {}),
+      })
+      .eq("session_id", sesi.session_id);
+
+    if (errorUpdate) {
+      console.error("Gagal membuka kembali sesi:", errorUpdate);
+      return { sukses: false, pesan: "Gagal membuka kembali sesi hari ini." };
+    }
+
+    revalidatePath("/main-menu");
+    revalidatePath("/dashboard");
+    revalidatePath("/riwayat");
+
+    return { sukses: true, session_id: sesi.session_id, status: "OPEN" };
+  }
+
+  // Sesi baru: modal awal wajib berupa angka 0 atau lebih.
+  const modalAwal = Number(input.modalAwal);
+
+  if (!Number.isFinite(modalAwal) || modalAwal < 0) {
+    return {
+      sukses: false,
+      pesan: "Modal awal harus berupa angka 0 atau lebih.",
+    };
+  }
+
+  const userId = await userUntukSesiBaru(supabase);
+
+  if (!userId) {
+    return {
+      sukses: false,
+      pesan: "Data pengguna belum tersedia. Sesi tidak bisa dibuka.",
+    };
+  }
+
+  const { data: dataBaru, error: errorInsert } = await supabase
+    .schema("myomset")
+    .from("daily_sessions")
+    .insert({
+      user_id: userId,
+      session_date: hariIni,
+      opening_capital: modalAwal,
+      total_revenue: 0,
+      transaction_count: 0,
+      status: "OPEN",
+      opened_at: new Date().toISOString(),
+      closed_at: null,
+      notes: catatan,
+    })
+    .select("session_id")
+    .single();
+
+  if (errorInsert) {
+    console.error("Gagal membuka sesi:", errorInsert);
+    return { sukses: false, pesan: "Gagal membuka sesi hari ini." };
+  }
+
+  const sesiBaru = dataBaru as Pick<DailySession, "session_id">;
+
+  revalidatePath("/main-menu");
+  revalidatePath("/dashboard");
+  revalidatePath("/riwayat");
+
+  return { sukses: true, session_id: sesiBaru.session_id, status: "OPEN" };
+}
+
+/**
+ * Menutup sesi hari ini.
+ *
+ * Omzet dan jumlah transaksi dihitung ulang lebih dulu supaya angka yang
+ * tersimpan di riwayat sudah final saat status berubah menjadi CLOSED.
+ */
+export async function tutupSesi(
+  input: TutupSesiInput = {},
+): Promise<HasilAksiSesi> {
+  const catatan = rapikanCatatan(input.catatan);
+
+  if (catatan && catatan.length > MAKS_CATATAN) {
+    return {
+      sukses: false,
+      pesan: `Catatan terlalu panjang (maksimal ${MAKS_CATATAN} karakter).`,
+    };
+  }
+
+  const supabase = await createClient();
+
+  const { data: dataSesi, error: errorSesi } = await supabase
+    .schema("myomset")
+    .from("daily_sessions")
+    .select("session_id, user_id, status")
+    .eq("session_date", hariIniWib())
+    .maybeSingle();
+
+  if (errorSesi) {
+    console.error("Gagal mengambil sesi hari ini:", errorSesi);
+    return { sukses: false, pesan: "Gagal mengambil sesi hari ini." };
+  }
+
+  const sesi = dataSesi as SesiHariIni | null;
+
+  if (!sesi) {
+    return {
+      sukses: false,
+      pesan: "Belum ada sesi hari ini. Buka sesi terlebih dahulu.",
+    };
+  }
+
+  if (sesi.status.trim().toUpperCase() === "CLOSED") {
+    return { sukses: false, pesan: "Sesi hari ini sudah ditutup." };
+  }
+
+  await sinkronkanTotalSesi(supabase, sesi.session_id);
+
+  const { error: errorUpdate } = await supabase
+    .schema("myomset")
+    .from("daily_sessions")
+    .update({
+      status: "CLOSED",
+      closed_at: new Date().toISOString(),
+      // Catatan lama dipertahankan bila form tidak mengirim catatan baru.
+      ...(catatan ? { notes: catatan } : {}),
+    })
+    .eq("session_id", sesi.session_id);
+
+  if (errorUpdate) {
+    console.error("Gagal menutup sesi:", errorUpdate);
+    return { sukses: false, pesan: "Gagal menutup sesi hari ini." };
+  }
+
+  revalidatePath("/main-menu");
+  revalidatePath("/dashboard");
+  revalidatePath("/riwayat");
+
+  return { sukses: true, session_id: sesi.session_id, status: "CLOSED" };
 }
 

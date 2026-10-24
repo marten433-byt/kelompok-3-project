@@ -29,12 +29,18 @@ function jamSekarang() {
 type MainMenuClientProps = {
   /** Penjualan hari ini dari tabel sale_items. */
   penjualanAwal: Penjualan[];
+  /** Status sesi hari ini; null berarti sesi belum dibuat. */
+  statusSesi: "OPEN" | "CLOSED" | null;
 };
 
-export function MainMenuClient({ penjualanAwal }: MainMenuClientProps) {
+export function MainMenuClient({
+  penjualanAwal,
+  statusSesi,
+}: MainMenuClientProps) {
   const router = useRouter();
   const [penjualan, setPenjualan] = useState<Penjualan[]>(penjualanAwal);
   const [, startTransition] = useTransition();
+  const sesiTerbuka = statusSesi === "OPEN";
 
   function tambahPenjualan({ nama, nominal }: PenjualanBaru) {
     startTransition(async () => {
@@ -72,6 +78,14 @@ export function MainMenuClient({ penjualanAwal }: MainMenuClientProps) {
       <TombolHarga
         onPilihNominal={tambahNominal}
         onTambahPenjualan={tambahPenjualan}
+        nonaktif={!sesiTerbuka}
+        alasanNonaktif={
+          statusSesi === "CLOSED"
+            ? "Sesi hari ini sudah ditutup. Buka kembali sesi untuk mencatat penjualan."
+            : statusSesi === null
+              ? "Sesi hari ini belum dibuka. Buka sesi dulu untuk mencatat penjualan."
+              : undefined
+        }
       />
     </>
   );
