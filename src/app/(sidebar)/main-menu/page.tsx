@@ -28,7 +28,7 @@ type SaleItemDenganProduk = Pick<
   SaleItem,
   "sale_item_id" | "unit_price" | "created_at"
 > & {
-  // Relasi ke products bisa berbentuk objek (many-to-one) atau array,
+  // Relasi ke products bisa berbentuk objek (many-to-one) atau array, miau
   // tergantung bagaimana PostgREST mengembalikannya.
   products: Pick<Product, "name"> | Pick<Product, "name">[] | null;
 };
@@ -80,7 +80,10 @@ export default async function MainMenuPage() {
       .maybeSingle();
 
     if (errorModalSebelumnya) {
-      console.error("Gagal mengambil modal sesi terakhir:", errorModalSebelumnya);
+      console.error(
+        "Gagal mengambil modal sesi terakhir:",
+        errorModalSebelumnya,
+      );
     } else if (sesiSebelumnya) {
       const sebelumnya = sesiSebelumnya as Pick<
         DailySession,
@@ -125,15 +128,15 @@ export default async function MainMenuPage() {
     if (itemPenjualan.error) {
       console.error("Gagal mengambil item penjualan:", itemPenjualan.error);
     } else {
-      penjualan = (
-        (itemPenjualan.data ?? []) as SaleItemDenganProduk[]
-      ).map((item) => ({
-        // Jam dari kolom created_at agar waktu transaksi tetap sama
-        // setelah halaman dimuat ulang.
-        jam: formatJamWib(item.created_at) ?? undefined,
-        nama: namaProduk(item.products),
-        nominal: item.unit_price,
-      }));
+      penjualan = ((itemPenjualan.data ?? []) as SaleItemDenganProduk[]).map(
+        (item) => ({
+          // Jam dari kolom created_at agar waktu transaksi tetap sama
+          // setelah halaman dimuat ulang.
+          jam: formatJamWib(item.created_at) ?? undefined,
+          nama: namaProduk(item.products),
+          nominal: item.unit_price,
+        }),
+      );
     }
   }
 
